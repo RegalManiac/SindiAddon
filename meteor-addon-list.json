@@ -3,7 +3,7 @@
   "tags": ["Utility", "PVE", "Misc", "QoL", "Render", "Automation"],
   "supported_versions": ["1.21.11"],
   "icon": ["/src/main/resources/assets/sindiaddon/textures/icon/sindi.png"],
-  "discord": "later",
+  "discord": "https://discord.gg/hnXsUMuF",
   "feature_directories": {
     "modules": ["modules/combat", "modules/misc", "modules/movement", "modules/player", "modules/render", "modules/world"]
   }

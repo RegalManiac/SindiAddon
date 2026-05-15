@@ -66,4 +66,4 @@ These features integrate directly into the Meteor Client configuration to provid
 
 ## Contacts
 
-[SindiAddon/Discord] - [Later]
+[SindiAddon/Discord](https://discord.gg/hnXsUMuF)
