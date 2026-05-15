@@ -1,0 +1,8 @@
+accessWidener	v2	named
+
+accessible field net/minecraft/world/chunk/PalettedContainer data Lnet/minecraft/world/chunk/PalettedContainer$Data;
+accessible method net/minecraft/world/chunk/PalettedContainer$Data palette ()Lnet/minecraft/world/chunk/Palette;
+accessible field net/minecraft/client/world/ClientChunkManager$ClientChunkMap chunks Ljava/util/concurrent/atomic/AtomicReferenceArray;
+accessible field net/minecraft/client/world/ClientChunkManager chunks Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;
+accessible method net/minecraft/entity/LivingEntity tryUseDeathProtector (Lnet/minecraft/entity/damage/DamageSource;)Z
+accessible method net/minecraft/client/world/ClientWorld getPendingUpdateManager ()Lnet/minecraft/client/network/PendingUpdateManager;

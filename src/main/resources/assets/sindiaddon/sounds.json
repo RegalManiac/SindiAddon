@@ -1,0 +1,122 @@
+{
+  "alarm": {
+    "category": "player",
+    "sounds": ["sindiaddon:alarm"]
+  },
+  "death": {
+    "category": "player",
+    "sounds": ["sindiaddon:death"]
+  },
+  "disable": {
+    "category": "player",
+    "sounds": ["sindiaddon:disable"]
+  },
+  "enable": {
+    "category": "player",
+    "sounds": ["sindiaddon:enable"]
+  },
+  "vrenter": {
+    "category": "player",
+    "sounds": ["sindiaddon:vrenter"]
+  },
+  "vrleave": {
+    "category": "player",
+    "sounds": ["sindiaddon:vrleave"]
+  },
+  "fuzz": {
+    "category": "player",
+    "sounds": ["sindiaddon:fuzz"]
+  },
+  "klaxon": {
+    "category": "player,",
+    "sounds": ["sindiaddon:klaxon"]
+  },
+  "activated": {
+    "category": "player",
+    "sounds": ["sindiaddon:activated"]
+  },
+  "deactivated": {
+    "category": "player",
+    "sounds": ["sindiaddon:deactivated"]
+  },
+  "pizzacombo1": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo1"]
+  },
+  "pizzacombo2": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo2"]
+  },
+  "pizzacombo3": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo3"]
+  },
+  "pizzacombo4": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo4"]
+  },
+  "pizzacombo5": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo5"]
+  },
+  "pizzacombo6": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo6"]
+  },
+  "pizzacombo7": {
+    "category": "player",
+    "sounds": ["sindiaddon:pizzacombo7"]
+  },
+  "loud_shotgun": {
+    "category": "player",
+    "sounds": ["sindiaddon:loud_shotgun"]
+  },
+  "quiet_shotgun": {
+    "category": "player",
+    "sounds": ["sindiaddon:quiet_shotgun"]
+  },
+  "revolver": {
+    "category": "player",
+    "sounds": ["sindiaddon:revolver"]
+  },
+  "hit": {
+    "category": "player",
+    "sounds": ["sindiaddon:hit"]
+  },
+  "punch": {
+    "category": "player",
+    "sounds": ["sindiaddon:punch"]
+  },
+  "crowbar_clang": {
+    "category": "player",
+    "sounds": ["sindiaddon:crowbar_clang"]
+  },
+  "lil_explode": {
+    "category": "player",
+    "sounds": ["sindiaddon:lil_explode"]
+  },
+  "huge_explode": {
+    "category": "player",
+    "sounds": ["sindiaddon:huge_explode"]
+  },
+  "metal_break": {
+    "category": "player",
+    "sounds": ["sindiaddon:metal_box_break"]
+  },
+  "saykill": {
+    "category": "player",
+    "sounds": ["sindiaddon:saykill"]
+  },
+  "sayclear": {
+    "category": "player",
+    "sounds": ["sindiaddon:sayclear"]
+  },
+  "saydanger": {
+    "category": "player",
+    "sounds": ["sindiaddon:saydanger"]
+  },
+  "saywarning": {
+    "category": "player",
+    "sounds": ["sindiaddon:saywarning"]
+  }
+}

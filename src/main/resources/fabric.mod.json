@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "id": "sindiaddon",
+  "version": "${version}",
+  "name": "SindiAddon",
+  "description": "Same usable functions, bla bla bla...",
+  "authors": [
+    "RegalManiac"
+  ],
+  "contact": {
+
+  },
+  "icon": "assets/sindiaddon/textures/icon/sindi.png",
+  "environment": "client",
+  "entrypoints": {
+    "meteor": [
+      "com.RegalManiac.addon.SindiAddon"
+    ]
+  },
+  "mixins": [
+    "sindiaddon.mixins.json"
+  ],
+  "accessWidener": "sindiaddon.accesswidener",
+  "custom": {
+    "meteor-client:color": "225,25,25"
+  },
+  "depends": {
+    "java": ">=21",
+    "minecraft": ">=${mc_version}",
+    "meteor-client": "*"
+  }
+}

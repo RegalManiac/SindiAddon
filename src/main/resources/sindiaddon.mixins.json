@@ -1,0 +1,41 @@
+{
+  "required": true,
+  "package": "com.RegalManiac.addon.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "priority": 1000,
+  "plugin": "com.RegalManiac.addon.mixin.MixinPlugin",
+  "client": [
+  ],
+  "mixins": [
+    "accessors.BundleS2CPacketAccessor",
+    "accessors.ClientPlayerInteractionManagerAccessor",
+    "accessors.ExplosionS2CPacketAccessor",
+    "accessors.PlayerLikeEntityAccessor",
+    "meteor.AirPlaceMixin",
+    "meteor.BetterChatMixin",
+    "meteor.BetterTooltipsMixin",
+    "meteor.ChatUtilsMixin",
+    "meteor.ConfigMixin",
+    "meteor.ModuleMixin",
+    "meteor.ModulesMixin",
+    "meteor.NoSlowMixin",
+    "meteor.NotifierMixin",
+    "meteor.NukerMixin",
+    "meteor.WMeteorModuleMixin",
+    "mixins.AbstractClientPlayerEntityMixin",
+    "mixins.ChatHudMixin",
+    "mixins.ClientConnectionMixin",
+    "mixins.ClientPlayerEntityMixin",
+    "mixins.ClientPlayNetworkHandlerMixin",
+    "mixins.EntityMixin",
+    "mixins.HandledScreenMixin",
+    "mixins.InGameHudMixin",
+    "mixins.NarratorManagerMixin",
+    "mixins.PlayerEntityMixin",
+    "mixins.TitleScreenMixin",
+    "sodium.OcclusionCullerMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
