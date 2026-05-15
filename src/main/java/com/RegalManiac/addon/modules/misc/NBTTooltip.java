@@ -12,6 +12,9 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.*;
 import org.lwjgl.glfw.GLFW;
 
+/**
+ * made by Satellite dev
+ */
 public class NBTTooltip extends Module {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();

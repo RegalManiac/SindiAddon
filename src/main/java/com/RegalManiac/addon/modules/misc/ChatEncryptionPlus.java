@@ -19,6 +19,9 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
+/**
+ * Original code made by cqb13
+ */
 public class ChatEncryptionPlus extends Module {
     public static ChatEncryptionPlus INSTANCE;
 

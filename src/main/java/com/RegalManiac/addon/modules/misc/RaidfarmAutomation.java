@@ -15,6 +15,9 @@ import meteordevelopment.orbit.EventPriority;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.item.Items;
 
+/**
+ * made by NyaHub
+ */
 public class RaidfarmAutomation extends Module {
     private final SettingGroup sgGeneral = this.settings.getDefaultGroup();
 
