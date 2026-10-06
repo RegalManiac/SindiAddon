@@ -1,6 +1,7 @@
 package com.RegalManiac.addon.mixin.meteor;
 
-import com.RegalManiac.addon.utils.ShulkerRenderUtils;
+import com.RegalManiac.addon.utils.render.ShulkerUtils;
+import com.RegalManiac.addon.utils.render.TooltipsUtils;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.render.BetterTooltips;
 import org.spongepowered.asm.mixin.Mixin;
@@ -14,7 +15,7 @@ public abstract class BetterTooltipsMixin {
 
     @Unique public Setting<Boolean> shulkerOverview;
     @Unique public Setting<Integer> shulkerIconSize;
-    @Unique public Setting<ShulkerRenderUtils.IconPosition> shulkerPos;
+    @Unique public Setting<ShulkerUtils.IconPosition> shulkerPos;
     @Unique public Setting<Boolean> showMultiple;
     @Unique public Setting<String> shulkerMultipleText;
     @Unique public Setting<Integer> shulkerMultipleSize;
@@ -44,10 +45,10 @@ public abstract class BetterTooltipsMixin {
             .build()
         );
 
-        shulkerPos = sgShulkerOverview.add(new EnumSetting.Builder<ShulkerRenderUtils.IconPosition>()
+        shulkerPos = sgShulkerOverview.add(new EnumSetting.Builder<ShulkerUtils.IconPosition>()
             .name("icon-position")
             .description("Where to place the icon on the slot.")
-            .defaultValue(ShulkerRenderUtils.IconPosition.Center)
+            .defaultValue(ShulkerUtils.IconPosition.Center)
             .visible(shulkerOverview::get)
             .build()
         );
@@ -75,6 +76,15 @@ public abstract class BetterTooltipsMixin {
             .min(4)
             .max(16)
             .visible(shulkerOverview::get)
+            .build()
+        );
+
+        SettingGroup sgVillagerTrades = module.settings.createGroup("Villager Trades");
+
+        TooltipsUtils.villagerDemand = sgVillagerTrades.add(new BoolSetting.Builder()
+            .name("trade-demand")
+            .description("Shows villager demand bonus or discount under the trade arrow.")
+            .defaultValue(true)
             .build()
         );
     }

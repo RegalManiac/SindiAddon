@@ -1,6 +1,6 @@
 package com.RegalManiac.addon.modules.misc;
 
-import com.RegalManiac.addon.utils.TextUtils;
+import com.RegalManiac.addon.utils.text.TextUtils;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.game.ReceiveMessageEvent;
 import meteordevelopment.meteorclient.events.game.SendMessageEvent;
@@ -238,7 +238,7 @@ public class ChatControl extends Module {
     public final Setting<String> customPrefix = sgPrefixControl.add(new StringSetting.Builder()
         .name("custom-prefix")
         .description("The prefix for modules.")
-        .defaultValue("Sindi")
+        .defaultValue("SindiAddon")
         .build()
     );
 
@@ -423,25 +423,17 @@ public class ChatControl extends Module {
             return true;
         });
         String rawText = rawBuilder.toString();
+        int textLength = rawText.length();
 
-        net.minecraft.text.TextColor[] highlightColors = new net.minecraft.text.TextColor[rawText.length()];
-        net.minecraft.text.ClickEvent[] clickEvents = new net.minecraft.text.ClickEvent[rawText.length()];
-        net.minecraft.text.HoverEvent[] hoverEvents = new net.minecraft.text.HoverEvent[rawText.length()];
-
-        if (this.copyMessages.get()) {
-            net.minecraft.text.ClickEvent copyEvent = new net.minecraft.text.ClickEvent.CopyToClipboard(rawText);
-            net.minecraft.text.HoverEvent copyHover = new net.minecraft.text.HoverEvent.ShowText(Text.literal("Copy Message").formatted(Formatting.GRAY));
-            for (int k = 0; k < rawText.length(); k++) {
-                clickEvents[k] = copyEvent;
-                hoverEvents[k] = copyHover;
-            }
-        }
+        net.minecraft.text.TextColor[] highlightColors = new net.minecraft.text.TextColor[textLength];
+        net.minecraft.text.ClickEvent[] clickEvents = new net.minecraft.text.ClickEvent[textLength];
+        net.minecraft.text.HoverEvent[] hoverEvents = new net.minecraft.text.HoverEvent[textLength];
 
         if (this.nameClick.get()) {
             String cmd = this.clickCommand.get();
 
             java.util.regex.Matcher m1 = java.util.regex.Pattern.compile("^<([a-zA-Z0-9_]{3,16})>").matcher(rawText);
-            java.util.regex.Matcher m2 = java.util.regex.Pattern.compile("^\\[([a-zA-Z0-9_]{3,16})\\]").matcher(rawText);
+            java.util.regex.Matcher m2 = java.util.regex.Pattern.compile("^\\[([a-zA-Z0-9_]{3,16})]").matcher(rawText);
             java.util.regex.Matcher m3 = java.util.regex.Pattern.compile("^([a-zA-Z0-9_]{3,16})\\s?[>:]").matcher(rawText);
 
             String senderName = null;
@@ -451,12 +443,9 @@ public class ChatControl extends Module {
             else if (m3.find()) { senderName = m3.group(1); sStart = m3.start(1); }
 
             if (senderName != null && sStart > -1) {
-                net.minecraft.text.ClickEvent ce = new net.minecraft.text.ClickEvent.SuggestCommand(cmd + senderName + " ");
-                net.minecraft.text.HoverEvent he = new net.minecraft.text.HoverEvent.ShowText(Text.literal("Send Message").formatted(Formatting.GRAY));
-                for (int k = 0; k < senderName.length(); k++) {
-                    clickEvents[sStart + k] = ce;
-                    hoverEvents[sStart + k] = he;
-                }
+                applyClickAndHover(clickEvents, hoverEvents, sStart, senderName.length(),
+                    new net.minecraft.text.ClickEvent.SuggestCommand(cmd + senderName + " "),
+                    new net.minecraft.text.HoverEvent.ShowText(Text.literal("Send Message").formatted(Formatting.GRAY)));
             }
 
             if (this.mc.getNetworkHandler() != null) {
@@ -466,12 +455,9 @@ public class ChatControl extends Module {
                     int idx = rawText.indexOf(name);
                     while (idx > -1) {
                         if (isExactMatch(rawText, name, idx)) {
-                            net.minecraft.text.ClickEvent ce = new net.minecraft.text.ClickEvent.SuggestCommand(cmd + name + " ");
-                            net.minecraft.text.HoverEvent he = new net.minecraft.text.HoverEvent.ShowText(Text.literal("Send Message").formatted(Formatting.GRAY));
-                            for (int k = 0; k < name.length(); k++) {
-                                clickEvents[idx + k] = ce;
-                                hoverEvents[idx + k] = he;
-                            }
+                            applyClickAndHover(clickEvents, hoverEvents, idx, name.length(),
+                                new net.minecraft.text.ClickEvent.SuggestCommand(cmd + name + " "),
+                                new net.minecraft.text.HoverEvent.ShowText(Text.literal("Send Message").formatted(Formatting.GRAY)));
                         }
                         idx = rawText.indexOf(name, idx + 1);
                     }
@@ -498,19 +484,31 @@ public class ChatControl extends Module {
             SettingColor fC = Config.get().friendColor.get();
             net.minecraft.text.TextColor friendColor = net.minecraft.text.TextColor.fromRgb((fC.r << 16) | (fC.g << 8) | fC.b);
             for (Friend friend : Friends.get()) {
-                int idx = rawText.indexOf(friend.name);
+                int idx = rawText.indexOf(friend.getName());
                 while (idx > -1) {
-                    if (isExactMatch(rawText, friend.name, idx)) {
-                        for (int k = 0; k < friend.name.length(); k++) highlightColors[idx + k] = friendColor;
+                    if (isExactMatch(rawText, friend.getName(), idx)) {
+                        for (int k = 0; k < friend.getName().length(); k++) highlightColors[idx + k] = friendColor;
                     }
-                    idx = rawText.indexOf(friend.name, idx + 1);
+                    idx = rawText.indexOf(friend.getName(), idx + 1);
+                }
+            }
+        }
+
+        if (this.copyMessages.get()) {
+            net.minecraft.text.ClickEvent copyEvent = new net.minecraft.text.ClickEvent.CopyToClipboard(rawText);
+            net.minecraft.text.HoverEvent copyHover = new net.minecraft.text.HoverEvent.ShowText(Text.literal("Copy Message").formatted(Formatting.GRAY));
+
+            for (int k = 0; k < textLength; k++) {
+                if (clickEvents[k] == null) {
+                    clickEvents[k] = copyEvent;
+                    hoverEvents[k] = copyHover;
                 }
             }
         }
 
         MutableText parsed = Text.literal("");
         class RebuildState {
-            StringBuilder buffer = new StringBuilder();
+            final StringBuilder buffer = new StringBuilder();
             net.minecraft.text.Style currentStyle = null;
 
             void flush() {
@@ -521,18 +519,33 @@ public class ChatControl extends Module {
             }
         }
         RebuildState state = new RebuildState();
-        java.util.concurrent.atomic.AtomicInteger charIdx = new java.util.concurrent.atomic.AtomicInteger(0);
+        int[] charIdx = new int[]{0};
 
         message.asOrderedText().accept((i, originalStyle, codePoint) -> {
-            int index = charIdx.getAndAdd(Character.charCount(codePoint));
+            int index = charIdx[0];
+            int charLen = Character.charCount(codePoint);
+            charIdx[0] += charLen;
+
             net.minecraft.text.Style targetStyle = originalStyle;
 
             if (index < highlightColors.length && highlightColors[index] != null) {
                 targetStyle = targetStyle.withColor(highlightColors[index]);
             }
-            if (index < clickEvents.length && clickEvents[index] != null) {
+
+            if (this.nameClick.get() && index < clickEvents.length && clickEvents[index] instanceof net.minecraft.text.ClickEvent.SuggestCommand) {
                 targetStyle = targetStyle.withClickEvent(clickEvents[index]);
-                targetStyle = targetStyle.withHoverEvent(hoverEvents[index]);
+                if (hoverEvents[index] != null) {
+                    targetStyle = targetStyle.withHoverEvent(hoverEvents[index]);
+                }
+            }
+            else if (originalStyle != null && originalStyle.getClickEvent() != null) {
+                targetStyle = originalStyle;
+            }
+            else if (index < clickEvents.length && clickEvents[index] != null) {
+                targetStyle = targetStyle.withClickEvent(clickEvents[index]);
+                if (hoverEvents[index] != null) {
+                    targetStyle = targetStyle.withHoverEvent(hoverEvents[index]);
+                }
             }
 
             if (state.currentStyle == null) {
@@ -554,6 +567,16 @@ public class ChatControl extends Module {
             event.setMessage(finalMsg);
         } else {
             event.setMessage(parsed);
+        }
+    }
+
+    private void applyClickAndHover(net.minecraft.text.ClickEvent[] clicks, net.minecraft.text.HoverEvent[] hovers, int start, int length, net.minecraft.text.ClickEvent click, net.minecraft.text.HoverEvent hover) {
+        for (int k = 0; k < length; k++) {
+            int pos = start + k;
+            if (pos < clicks.length) {
+                clicks[pos] = click;
+                hovers[pos] = hover;
+            }
         }
     }
 
@@ -679,7 +702,7 @@ public class ChatControl extends Module {
     private MutableText defaultSindiPrefix() {
         MutableText text = Text.empty();
         text.append(Text.literal("[").formatted(Formatting.GRAY));
-        text.append(Text.literal("Sindi").formatted(Formatting.DARK_RED));
+        text.append(Text.literal("SindiAddon").formatted(Formatting.DARK_RED));
         text.append(Text.literal("] ").formatted(Formatting.GRAY));
         return text;
     }

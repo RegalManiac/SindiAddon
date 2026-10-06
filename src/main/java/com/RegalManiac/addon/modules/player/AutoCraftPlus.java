@@ -32,6 +32,7 @@ import net.minecraft.util.math.Vec3d;
 
 import java.util.List;
 
+//TODO: сайлент на верстаке починить
 public class AutoCraftPlus extends Module {
 
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -94,6 +95,7 @@ public class AutoCraftPlus extends Module {
     private boolean botNeedsToClearCursor = false;
     private BlockPos lastPlayerPos = null;
     private CraftingScreen tableScreen;
+    private boolean forceTableCheck = true;
 
 
     public AutoCraftPlus() {
@@ -111,6 +113,7 @@ public class AutoCraftPlus extends Module {
         tableScreen = null;
         botNeedsToClearCursor = false;
         lastPlayerPos = null;
+        forceTableCheck = true;
         triggerSync();
     }
 
@@ -122,6 +125,7 @@ public class AutoCraftPlus extends Module {
 
     @EventHandler
     private void onGameJoined(GameJoinedEvent event) {
+        forceTableCheck = true;
         triggerSync();
     }
 
@@ -211,6 +215,7 @@ public class AutoCraftPlus extends Module {
             lastInvHash = currentHash;
             checkedInvThisSession = false;
             checkedTableThisSession = false;
+            forceTableCheck = true;
         }
 
         if (delayLeft > 0) {
@@ -241,20 +246,21 @@ public class AutoCraftPlus extends Module {
             }
         }
 
-        if (handler == null || (!isTable && !isInv)) {
+        if (handler == null) {
             if (mc.currentScreen != null && !(mc.currentScreen instanceof InventoryScreen) && !(mc.currentScreen instanceof CraftingScreen)) {
                 return;
             }
 
-            if (hasItemsToCraft()) {
-                if (!checkedInvThisSession && craftInInv.get() && !needsTableStrict) {
+            boolean hasItems = hasItemsToCraft();
+            if (hasItems || (forceTableCheck && craftInTable.get() && tableAutoOpen.get())) {
+                if (!checkedInvThisSession && craftInInv.get() && !needsTableStrict && hasItems) {
                     if (!silent.get() && invAutoOpen.get()) {
                         mc.setScreen(new InventoryScreen(mc.player));
                         delayLeft = delayTicks.get();
                     }
                     isCraftingSession = true;
                     return;
-                } else if (!checkedTableThisSession && craftInTable.get() && tableAutoOpen.get()) {
+                } else if (!checkedTableThisSession && craftInTable.get() && tableAutoOpen.get() && (hasItems || forceTableCheck)) {
                     BlockPos table = findTable();
                     if (table != null) {
                         openTable(table);
@@ -263,6 +269,7 @@ public class AutoCraftPlus extends Module {
                         isCraftingSession = true;
                     } else {
                         checkedTableThisSession = true;
+                        forceTableCheck = false;
                     }
                     return;
                 }
@@ -308,7 +315,7 @@ public class AutoCraftPlus extends Module {
                     List<ItemStack> results = recipe.display().result().getStacks(context);
                     if (results.isEmpty()) continue;
 
-                    Item item = results.get(0).getItem();
+                    Item item = results.getFirst().getItem();
                     if (item == Items.FIREWORK_ROCKET && fwLevel.get() != FireworkLevel.None) continue;
 
                     if (items.get().contains(item)) {
@@ -349,7 +356,10 @@ public class AutoCraftPlus extends Module {
             isCraftingSession = true;
         } else {
             if (isInv) checkedInvThisSession = true;
-            if (isTable) checkedTableThisSession = true;
+            if (isTable) {
+                checkedTableThisSession = true;
+                forceTableCheck = false;
+            }
 
             if (isCraftingSession) {
                 if (isTable && tableAutoClose.get() && tableOpenedByUs) {
@@ -479,7 +489,7 @@ public class AutoCraftPlus extends Module {
         int paperFullStacks = getFullStacks(handler, Items.PAPER);
         int powderFullStacks = getFullStacks(handler, Items.GUNPOWDER);
 
-        boolean canCraft = false;
+        boolean canCraft;
         if (mode == CraftMode.All) {
             canCraft = paperFullStacks >= 1 && powderFullStacks >= neededPowder;
         } else {
@@ -649,7 +659,7 @@ public class AutoCraftPlus extends Module {
                 }
             }
 
-            boolean hasEnough = false;
+            boolean hasEnough;
             if (craftMode.get() == CraftMode.Enhanced) {
                 hasEnough = (paperEnhancedStacks >= 1 && powderEnhancedStacks >= neededPowder);
             } else if (craftMode.get() == CraftMode.All) {
@@ -682,7 +692,7 @@ public class AutoCraftPlus extends Module {
                 List<ItemStack> results = recipe.display().result().getStacks(context);
                 if (results.isEmpty()) continue;
 
-                Item item = results.get(0).getItem();
+                Item item = results.getFirst().getItem();
                 if (item == Items.FIREWORK_ROCKET && fwLevel.get() != FireworkLevel.None) continue;
 
                 if (items.get().contains(item)) {
@@ -758,7 +768,7 @@ public class AutoCraftPlus extends Module {
                 List<ItemStack> results = recipe.display().result().getStacks(context);
                 if (results.isEmpty()) continue;
 
-                Item resultItem = results.get(0).getItem();
+                Item resultItem = results.getFirst().getItem();
                 if (resultItem == Items.FIREWORK_ROCKET && fwLevel.get() != FireworkLevel.None) continue;
 
                 if (items.get().contains(resultItem)) {

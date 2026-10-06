@@ -1,79 +1,46 @@
 package com.RegalManiac.addon.mixin.meteor;
 
-import com.RegalManiac.addon.SindiAddon;
+import com.RegalManiac.addon.utils.sound.SoundUtils;
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.systems.modules.misc.Notifier;
-import net.minecraft.client.sound.PositionedSoundInstance;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
+import net.minecraft.sound.SoundCategory;
 import net.minecraft.sound.SoundEvent;
-import net.minecraft.util.Identifier;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import static meteordevelopment.meteorclient.MeteorClient.mc;
 
 @Mixin(Notifier.class)
 public class NotifierMixin {
 
-    @Unique
-    private static final SoundEvent VR_ENTER = SoundEvent.of(Identifier.of("sindiaddon", "vrenter"));
-
-    @Unique
-    private static final SoundEvent VR_LEAVE = SoundEvent.of(Identifier.of("sindiaddon", "vrleave"));
-
-    @Unique
-    private static final SoundEvent DEATH_MUSIC = SoundEvent.of(Identifier.of("sindiaddon", "death"));
-
-    @Unique
-    private boolean playedDeathSound = false;
-
-    public NotifierMixin() { super(); }
-
     @Inject(method = "onTick", at = @At("HEAD"))
     private void onTickDeathCheck(TickEvent.Post event, CallbackInfo ci) {
-        if (mc.player == null) return;
-
-        if (SindiAddon.deathSounds != null && !SindiAddon.deathSounds.get()) return;
-
-        if ((mc.player.getHealth() <= 0 || mc.player.isDead()) && !playedDeathSound) {
-            mc.getSoundManager().play(PositionedSoundInstance.master(DEATH_MUSIC, 1.0F));
-            playedDeathSound = true;
-        }
-        else if (mc.player.getHealth() > 0 && playedDeathSound) {
-            playedDeathSound = false;
-        }
+        SoundUtils.checkAndPlayDeathSound();
     }
 
-    @ModifyArg(
+    @WrapOperation(
         method = "onEntityAdded(Lmeteordevelopment/meteorclient/events/entity/EntityAddedEvent;)V",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/world/ClientWorld;playSoundFromEntity(Lnet/minecraft/entity/Entity;Lnet/minecraft/entity/Entity;Lnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FF)V"
-        ),
-        index = 2
+        )
     )
-    private SoundEvent modifyVrEnterSound(SoundEvent original) {
-        if (SindiAddon.visualRangeSounds != null && !SindiAddon.visualRangeSounds.get()) {
-            return original;
-        }
-        return VR_ENTER;
+    private void redirectVrEnterSound(ClientWorld instance, Entity except, Entity entity, SoundEvent sound, SoundCategory category, float volume, float pitch, Operation<Void> original) {
+        SoundUtils.playVrEnterSound(instance, except, entity, sound, category, volume, pitch);
     }
 
-    @ModifyArg(
+    @WrapOperation(
         method = "onEntityRemoved(Lmeteordevelopment/meteorclient/events/entity/EntityRemovedEvent;)V",
         at = @At(
             value = "INVOKE",
             target = "Lnet/minecraft/client/world/ClientWorld;playSoundFromEntity(Lnet/minecraft/entity/Entity;Lnet/minecraft/entity/Entity;Lnet/minecraft/sound/SoundEvent;Lnet/minecraft/sound/SoundCategory;FF)V"
-        ),
-        index = 2
+        )
     )
-    private SoundEvent modifyVrLeaveSound(SoundEvent original) {
-        if (SindiAddon.visualRangeSounds != null && !SindiAddon.visualRangeSounds.get()) {
-            return original;
-        }
-        return VR_LEAVE;
+    private void redirectVrLeaveSound(ClientWorld instance, Entity except, Entity entity, SoundEvent sound, SoundCategory category, float volume, float pitch, Operation<Void> original) {
+        SoundUtils.playVrLeaveSound(instance, except, entity, sound, category, volume, pitch);
     }
 }

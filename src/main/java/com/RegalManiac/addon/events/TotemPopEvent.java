@@ -1,10 +1,11 @@
 package com.RegalManiac.addon.events;
 
+import meteordevelopment.meteorclient.events.Cancellable;
 import net.minecraft.entity.player.PlayerEntity;
 
-public class TotemPopEvent extends Event {
+public class TotemPopEvent extends Cancellable {
     private final PlayerEntity entity;
-    private int pops;
+    private final int pops;
 
     public TotemPopEvent(PlayerEntity entity, int pops) {
         this.entity = entity;

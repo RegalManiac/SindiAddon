@@ -82,9 +82,9 @@ public class NBTTooltip extends Module {
     }
 
     public static String formatNBT(NbtCompound compound, int currentIndentation, int indentationLevel, boolean colors) {
-        String keyColor = "\u00a7b";
-        String bracketColor = "\u00a7f";
-        String resetColor = "\u00a7r";
+        String keyColor = "§b";
+        String bracketColor = "§f";
+        String resetColor = "§r";
         if (!colors) {
             keyColor = "";
             bracketColor = "";
@@ -139,8 +139,8 @@ public class NBTTooltip extends Module {
     }
 
     public static String formatNBT(NbtList list, int currentIndentation, int indentationLevel, boolean colors) {
-        String bracketColor = "\u00a7f";
-        String resetColor = "\u00a7r";
+        String bracketColor = "§f";
+        String resetColor = "§r";
         if (!colors) {
             bracketColor = "";
             resetColor = "";
@@ -184,6 +184,6 @@ public class NBTTooltip extends Module {
     }
 
     private static String color(Object string, char color) {
-        return "\u00a7" + color + string.toString() + "\u00a7r";
+        return "§" + color + string.toString() + "§r";
     }
 }

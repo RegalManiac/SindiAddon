@@ -1,11 +1,14 @@
-package com.RegalManiac.addon.utils;
+package com.RegalManiac.addon.utils.automation;
 
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.UUID;
 
 import static net.minecraft.enchantment.EnchantmentHelper.getEnchantments;
 
@@ -91,7 +94,7 @@ public class EnchantTreeUtils {
 
     public static int getRepairCost(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return 0;
-        Integer cost = stack.get(net.minecraft.component.DataComponentTypes.REPAIR_COST);
+        Integer cost = stack.get(DataComponentTypes.REPAIR_COST);
         return cost != null ? cost : 0;
     }
 

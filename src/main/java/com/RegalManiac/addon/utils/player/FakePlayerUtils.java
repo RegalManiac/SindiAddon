@@ -1,4 +1,4 @@
-package com.RegalManiac.addon.utils;
+package com.RegalManiac.addon.utils.player;
 
 import com.mojang.authlib.GameProfile;
 import meteordevelopment.meteorclient.systems.modules.combat.Criticals;
@@ -67,7 +67,7 @@ public class FakePlayerUtils extends PlayerEntity {
                     } else if (name.contains("mace")) {
                         damage += 6.0f;
                         if (attacker.fallDistance > 1.5f) {
-                            damage += (attacker.fallDistance - 1.5f) * 3.0f;
+                            damage += (float) ((attacker.fallDistance - 1.5f) * 3.0f);
                         }
                     } else if (name.contains("spear") || name.contains("lance")) {
                         if (name.contains("netherite")) damage += 8.0f;
@@ -81,7 +81,7 @@ public class FakePlayerUtils extends PlayerEntity {
                             damage += (float) (speed * 15.0);
                         }
                         if (attacker.fallDistance > 1.5f) {
-                            damage += (attacker.fallDistance - 1.5f) * 2.0f;
+                            damage += (float) ((attacker.fallDistance - 1.5f) * 2.0f);
                         }
                     }
                 }
@@ -91,14 +91,12 @@ public class FakePlayerUtils extends PlayerEntity {
         }
 
         float[] enchantDamage = {0.0f};
-        EnchantmentHelper.forEachEnchantment(stack, (enchantment, level) -> {
-            enchantment.getKey().ifPresent(key -> {
-                String id = key.getValue().getPath();
-                if (id.equals("sharpness")) {
-                    enchantDamage[0] += 0.5f * level + 0.5f;
-                }
-            });
-        });
+        EnchantmentHelper.forEachEnchantment(stack, (enchantment, level) -> enchantment.getKey().ifPresent(key -> {
+            String id = key.getValue().getPath();
+            if (id.equals("sharpness")) {
+                enchantDamage[0] += 0.5f * level + 0.5f;
+            }
+        }));
 
         damage += enchantDamage[0];
 
@@ -117,8 +115,8 @@ public class FakePlayerUtils extends PlayerEntity {
         try {
             meteordevelopment.meteorclient.systems.modules.Modules modules = meteordevelopment.meteorclient.systems.modules.Modules.get();
             if (modules != null) {
-                meteordevelopment.meteorclient.systems.modules.Module crit1 = modules.get(Criticals.class);
-                if ((crit1 != null && crit1.isActive())) {
+                meteordevelopment.meteorclient.systems.modules.Module crit = modules.get(Criticals.class);
+                if ((crit != null && crit.isActive())) {
                     hackCrit = true;
                 }
             }
@@ -248,20 +246,18 @@ public class FakePlayerUtils extends PlayerEntity {
                 }
             } catch (Exception ignored) {}
 
-            EnchantmentHelper.forEachEnchantment(stack, (enchantment, level) -> {
-                enchantment.getKey().ifPresent(key -> {
-                    String id = key.getValue().getPath();
-                    boolean isExplosion = source.getName().toLowerCase().contains("explosion");
+            EnchantmentHelper.forEachEnchantment(stack, (enchantment, level) -> enchantment.getKey().ifPresent(key -> {
+                String id = key.getValue().getPath();
+                boolean isExplosion = source.getName().toLowerCase().contains("explosion");
 
-                    if (id.equals("protection")) {
-                        epf[0] += level;
-                    } else if (id.equals("blast_protection") && isExplosion) {
-                        epf[0] += level * 2;
-                    } else if (id.equals("projectile_protection") && source.getName().toLowerCase().contains("arrow")) {
-                        epf[0] += level * 2;
-                    }
-                });
-            });
+                if (id.equals("protection")) {
+                    epf[0] += level;
+                } else if (id.equals("blast_protection") && isExplosion) {
+                    epf[0] += level * 2;
+                } else if (id.equals("projectile_protection") && source.getName().toLowerCase().contains("arrow")) {
+                    epf[0] += level * 2;
+                }
+            }));
         }
 
         float damage = DamageUtil.getDamageLeft(target, baseDamage, source, totalArmor, totalToughness);

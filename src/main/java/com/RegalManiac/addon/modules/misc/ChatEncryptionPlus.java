@@ -9,19 +9,16 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.text.*;
 
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
-import javax.crypto.Cipher;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.SecretKeySpec;
 
-/**
- * Original code made by cqb13
- */
 public class ChatEncryptionPlus extends Module {
     public static ChatEncryptionPlus INSTANCE;
 
@@ -40,7 +37,7 @@ public class ChatEncryptionPlus extends Module {
     private final Setting<List<String>> playersList = sgMsg.add(new StringListSetting.Builder().name("players-list").defaultValue(new ArrayList<>(0)).visible(() -> enableMsgEncryption.get() && msgSelectedPlayers.get()).build());
 
     public ChatEncryptionPlus() {
-        super(Categories.Misc, "chat-encryption-+", "Encrypt messages. Include msg encryption.");
+        super(Categories.Misc, "chat-encryption-+", "Encrypt messages.");
         INSTANCE = this;
     }
 
@@ -122,42 +119,40 @@ public class ChatEncryptionPlus extends Module {
             String encryptedPart = fullRaw.substring(fullRaw.indexOf(p) + p.length());
             String decrypted = decrypt(encryptedPart, deriveKeyFromStrings(key.get(), secretKey.get()));
 
-            if (decrypted != null) {
-                Style feedbackStyle = Style.EMPTY.withColor(TextColor.fromRgb(feedbackColor.get().getPacked()));
+            Style feedbackStyle = Style.EMPTY.withColor(TextColor.fromRgb(feedbackColor.get().getPacked()));
 
-                if (replaceOriginal.get()) {
-                    MutableText result = Text.empty();
-                    boolean prefixFound = false;
+            if (replaceOriginal.get()) {
+                MutableText result = Text.empty();
+                boolean prefixFound = false;
 
-                    for (Text part : originalText.getWithStyle(Style.EMPTY)) {
-                        String content = part.getString();
+                for (Text part : originalText.getWithStyle(Style.EMPTY)) {
+                    String content = part.getString();
 
-                        if (!prefixFound) {
-                            if (content.contains(p)) {
-                                prefixFound = true;
-                                int index = content.indexOf(p);
-                                String before = content.substring(0, index);
-                                if (!before.isEmpty()) {
-                                    result.append(Text.literal(before).setStyle(part.getStyle()));
-                                }
-                                result.append(Text.literal(decrypted).setStyle(part.getStyle()));
-                            } else {
-                                result.append(part.copy());
+                    if (!prefixFound) {
+                        if (content.contains(p)) {
+                            prefixFound = true;
+                            int index = content.indexOf(p);
+                            String before = content.substring(0, index);
+                            if (!before.isEmpty()) {
+                                result.append(Text.literal(before).setStyle(part.getStyle()));
                             }
+                            result.append(Text.literal(decrypted).setStyle(part.getStyle()));
+                        } else {
+                            result.append(part.copy());
                         }
                     }
-                    result.append(Text.literal(" [Decrypted]").setStyle(feedbackStyle));
-                    event.setMessage(result);
-
-                } else {
-                    event.setMessage(originalText.copy().append(
-                        Text.literal(" ").append(
-                            Text.literal("[Encrypted]").setStyle(feedbackStyle.withHoverEvent(
-                                new HoverEvent.ShowText(Text.literal(decrypted).setStyle(feedbackStyle))
-                            ))
-                        )
-                    ));
                 }
+                result.append(Text.literal(" [Decrypted]").setStyle(feedbackStyle));
+                event.setMessage(result);
+
+            } else {
+                event.setMessage(originalText.copy().append(
+                    Text.literal(" ").append(
+                        Text.literal("[Encrypted]").setStyle(feedbackStyle.withHoverEvent(
+                            new HoverEvent.ShowText(Text.literal(decrypted).setStyle(feedbackStyle))
+                        ))
+                    )
+                ));
             }
         } catch (Exception ignored) {}
     }

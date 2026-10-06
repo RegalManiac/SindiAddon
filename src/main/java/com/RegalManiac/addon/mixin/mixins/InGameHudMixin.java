@@ -1,7 +1,7 @@
 package com.RegalManiac.addon.mixin.mixins;
 
 import com.RegalManiac.addon.modules.combat.OffhandPlus;
-import com.RegalManiac.addon.utils.ShulkerRenderUtils;
+import com.RegalManiac.addon.utils.render.ShulkerUtils;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.MinecraftClient;
@@ -48,6 +48,8 @@ public abstract class InGameHudMixin {
 
     @Inject(method = "renderHotbar", at = @At("TAIL"))
     private void renderCustomOffhand(DrawContext context, RenderTickCounter tickCounter, CallbackInfo ci) {
+        if (client.player == null) return;
+
         OffhandPlus module = Modules.get().get(OffhandPlus.class);
         if (module == null || !module.isActive() || !module.isSwapKeyHeld()) return;
 
@@ -56,7 +58,6 @@ public abstract class InGameHudMixin {
         Arm arm = client.player.getMainArm().getOpposite();
 
         int step = 21;
-        int slotCount = 3;
 
         int activeSlots = 0;
         for (int i = 0; i < 3; i++) {
@@ -129,7 +130,7 @@ public abstract class InGameHudMixin {
             if (stack.isEmpty()) continue;
             if (!(stack.getItem() instanceof BlockItem blockItem) || !(blockItem.getBlock() instanceof ShulkerBoxBlock))
                 continue;
-            ShulkerRenderUtils.renderShulkerOverlay(context, posX, hotbarY, stack);
+            ShulkerUtils.renderShulkerOverlay(context, posX, hotbarY, stack);
         }
 
         ItemStack offhandStack = player.getOffHandStack();
@@ -141,7 +142,7 @@ public abstract class InGameHudMixin {
             } else {
                 offX = center - 91 - 29;
             }
-            ShulkerRenderUtils.renderShulkerOverlay(context, offX + 3, offY + 3, offhandStack);
+            ShulkerUtils.renderShulkerOverlay(context, offX + 3, offY + 3, offhandStack);
         }
     }
 }

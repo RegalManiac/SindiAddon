@@ -1,7 +1,7 @@
 package com.RegalManiac.addon.mixin.mixins;
 
 import com.RegalManiac.addon.modules.misc.ChatControl;
-import com.RegalManiac.addon.utils.TextUtils;
+import com.RegalManiac.addon.utils.text.TextUtils;
 import meteordevelopment.meteorclient.systems.friends.Friend;
 import meteordevelopment.meteorclient.systems.friends.Friends;
 import meteordevelopment.meteorclient.systems.modules.Modules;

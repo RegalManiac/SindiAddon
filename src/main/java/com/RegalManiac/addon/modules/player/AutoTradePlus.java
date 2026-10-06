@@ -1,12 +1,15 @@
 package com.RegalManiac.addon.modules.player;
 
+import meteordevelopment.meteorclient.events.game.OpenScreenEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
 import meteordevelopment.meteorclient.settings.*;
 import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.systems.modules.Modules;
+import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.meteorclient.utils.player.Rotations;
 import meteordevelopment.orbit.EventHandler;
+import net.minecraft.client.gui.screen.ingame.MerchantScreen;
 import net.minecraft.component.DataComponentTypes;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.entity.passive.VillagerEntity;
@@ -23,15 +26,14 @@ import net.minecraft.util.math.Vec3d;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradeOfferList;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public class AutoTradePlus extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
+    private final SettingGroup sgBehavior = settings.createGroup("Behavior");
+    private final SettingGroup sgDelays = settings.createGroup("Delays");
 
+    // General
     private final ItemListSetting tradeItems = sgGeneral.add(new ItemListSetting.Builder()
         .name("buy-items")
         .description("Items that the module will attempt to buy (e.g. Enchanted Books).")
@@ -59,44 +61,67 @@ public class AutoTradePlus extends Module {
         .build()
     );
 
-    private final Setting<Boolean> rotate = sgGeneral.add(new BoolSetting.Builder()
+    // Behavior
+    private final Setting<Boolean> rotate = sgBehavior.add(new BoolSetting.Builder()
         .name("rotate")
         .description("Automatically faces the villager when interacting.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> autoOpen = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> drop = sgBehavior.add(new BoolSetting.Builder()
+        .name("drop")
+        .description("Automatically drop bought items on the ground instead of putting them in inventory.")
+        .defaultValue(false)
+        .build()
+    );
+
+    private final Setting<Boolean> silent = sgBehavior.add(new BoolSetting.Builder()
+        .name("silent")
+        .description("Silently trades without rendering the GUI, allowing you to walk and look around.")
+        .defaultValue(false)
+        .build()
+    );
+
+    private final Setting<Boolean> autoOpen = sgBehavior.add(new BoolSetting.Builder()
         .name("auto-open")
         .description("Automatically open the trade menu when a villager is nearby.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> autoClose = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> autoClose = sgBehavior.add(new BoolSetting.Builder()
         .name("auto-close")
         .description("Automatically close the trade menu when finished or out of resources.")
         .defaultValue(true)
         .build()
     );
 
-    private final Setting<Boolean> autoDisable = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> autoDisable = sgBehavior.add(new BoolSetting.Builder()
         .name("auto-disable")
         .description("Automatically disable the module when trading resources are depleted.")
         .defaultValue(false)
         .build()
     );
 
-    private final Setting<Double> range = sgGeneral.add(new DoubleSetting.Builder()
+    private final Setting<Double> range = sgBehavior.add(new DoubleSetting.Builder()
         .name("range")
-        .description("Maximum distance to the villager for interaction.")
+        .description("Maximum distance from your eyes to the villager's body for interaction.")
         .defaultValue(4.5)
         .min(1)
         .max(6)
         .build()
     );
 
-    private final Setting<Integer> slotDelay = sgGeneral.add(new IntSetting.Builder()
+    private final Setting<Boolean> debug = sgBehavior.add(new BoolSetting.Builder()
+        .name("debug")
+        .description("Sends chat messages about module actions.")
+        .defaultValue(true)
+        .build()
+    );
+
+    // Delays
+    private final Setting<Integer> slotDelay = sgDelays.add(new IntSetting.Builder()
         .name("trade-delay")
         .description("The delay in ticks between clicking slots.")
         .defaultValue(3)
@@ -104,7 +129,7 @@ public class AutoTradePlus extends Module {
         .build()
     );
 
-    private final Setting<Integer> openDelay = sgGeneral.add(new IntSetting.Builder()
+    private final Setting<Integer> openDelay = sgDelays.add(new IntSetting.Builder()
         .name("open-delay")
         .description("Tick delay between opening villager trading menus.")
         .defaultValue(10)
@@ -112,7 +137,7 @@ public class AutoTradePlus extends Module {
         .build()
     );
 
-    private final Setting<Integer> closeDelay = sgGeneral.add(new IntSetting.Builder()
+    private final Setting<Integer> closeDelay = sgDelays.add(new IntSetting.Builder()
         .name("close-delay")
         .description("Tick delay before automatically closing the trading menu.")
         .defaultValue(10)
@@ -120,26 +145,19 @@ public class AutoTradePlus extends Module {
         .build()
     );
 
-    private final Setting<Boolean> linuxFix = sgGeneral.add(new BoolSetting.Builder()
+    private final Setting<Boolean> linuxFix = sgDelays.add(new BoolSetting.Builder()
         .name("auto-close-for-stuped-linux")
         .description("Forcefully closes the trade window after a set time to bypass Linux bugs.")
         .defaultValue(false)
         .build()
     );
 
-    private final Setting<Integer> linuxFixDelay = sgGeneral.add(new IntSetting.Builder()
+    private final Setting<Integer> linuxFixDelay = sgDelays.add(new IntSetting.Builder()
         .name("linux-close-delay")
         .description("Ticks to wait before force-closing (20 ticks = 1 sec).")
         .defaultValue(60)
         .min(1)
         .visible(linuxFix::get)
-        .build()
-    );
-
-    private final Setting<Boolean> debug = sgGeneral.add(new BoolSetting.Builder()
-        .name("debug")
-        .description("Sends chat messages about module actions.")
-        .defaultValue(true)
         .build()
     );
 
@@ -162,7 +180,14 @@ public class AutoTradePlus extends Module {
 
     private void debugInfo(String message) {
         if (debug.get()) {
-            info(message);
+            ChatUtils.info(message);
+        }
+    }
+
+    @EventHandler
+    private void onOpenScreen(OpenScreenEvent event) {
+        if (silent.get() && event.screen instanceof MerchantScreen) {
+            event.cancel();
         }
     }
 
@@ -195,7 +220,6 @@ public class AutoTradePlus extends Module {
         if (linuxFix.get()) {
             linuxForceCloseTimer++;
             if (linuxForceCloseTimer >= linuxFixDelay.get()) {
-                debugInfo("Linux Fix: Time limit reached! Force closing.");
                 closeMerchantScreen();
                 openTimer = openDelay.get();
                 return;
@@ -213,7 +237,6 @@ public class AutoTradePlus extends Module {
             }
 
             if (!mc.player.isInRange(tradingVillager, range.get())) {
-                debugInfo("Villager is out of range! Force closing trade.");
                 closeMerchantScreen();
                 return;
             }
@@ -244,7 +267,7 @@ public class AutoTradePlus extends Module {
             boolean isWantedItem = isDesiredItem(outputSlot);
 
             if (isEmerald || isWantedItem) {
-                if (!hasInventorySpace()) {
+                if (!hasInventorySpace() && !drop.get()) {
                     debugInfo("Inventory full! Stopping trade.");
                     if (autoClose.get()) closeMerchantScreen();
                     if (autoDisable.get()) this.toggle();
@@ -255,6 +278,20 @@ public class AutoTradePlus extends Module {
                 timer = slotDelay.get();
                 closeTimer = closeDelay.get();
                 return;
+            } else {
+                boolean cleared = false;
+                if (!handler.getSlot(0).getStack().isEmpty()) {
+                    mc.interactionManager.clickSlot(handler.syncId, 0, 0, SlotActionType.QUICK_MOVE, mc.player);
+                    cleared = true;
+                }
+                if (!handler.getSlot(1).getStack().isEmpty()) {
+                    mc.interactionManager.clickSlot(handler.syncId, 1, 0, SlotActionType.QUICK_MOVE, mc.player);
+                    cleared = true;
+                }
+                if (cleared) {
+                    timer = slotDelay.get();
+                    return;
+                }
             }
         }
 
@@ -356,6 +393,12 @@ public class AutoTradePlus extends Module {
     }
 
     private void handleOutputSlot(MerchantScreenHandler handler, ItemStack output) {
+        if (drop.get()) {
+            int action = output.isStackable() ? 1 : 0;
+            mc.interactionManager.clickSlot(handler.syncId, 2, action, SlotActionType.THROW, mc.player);
+            return;
+        }
+
         if (output.isStackable()) {
             mc.interactionManager.clickSlot(handler.syncId, 2, 0, SlotActionType.QUICK_MOVE, mc.player);
         } else {
@@ -444,7 +487,12 @@ public class AutoTradePlus extends Module {
         net.minecraft.village.TradedItem req1 = offer.getFirstBuyItem();
         ItemStack slot0 = handler.getSlot(0).getStack();
 
-        if (slot0.isEmpty() || !req1.matches(slot0) || slot0.getCount() < req1.count()) {
+        if (!slot0.isEmpty() && !req1.matches(slot0)) {
+            mc.interactionManager.clickSlot(handler.syncId, 0, 0, SlotActionType.QUICK_MOVE, mc.player);
+            return true;
+        }
+
+        if (slot0.isEmpty() || slot0.getCount() < req1.count()) {
             for (int i = 3; i <= 38; i++) {
                 ItemStack invStack = handler.getSlot(i).getStack();
                 if (req1.matches(invStack)) {
@@ -458,7 +506,12 @@ public class AutoTradePlus extends Module {
             net.minecraft.village.TradedItem req2 = offer.getSecondBuyItem().get();
             ItemStack slot1 = handler.getSlot(1).getStack();
 
-            if (slot1.isEmpty() || !req2.matches(slot1) || slot1.getCount() < req2.count()) {
+            if (!slot1.isEmpty() && !req2.matches(slot1)) {
+                mc.interactionManager.clickSlot(handler.syncId, 1, 0, SlotActionType.QUICK_MOVE, mc.player);
+                return true;
+            }
+
+            if (slot1.isEmpty() || slot1.getCount() < req2.count()) {
                 for (int i = 3; i <= 38; i++) {
                     ItemStack invStack = handler.getSlot(i).getStack();
                     if (req2.matches(invStack)) {
@@ -542,9 +595,8 @@ public class AutoTradePlus extends Module {
 
     private void closeMerchantScreen() {
         if (mc.player != null) {
-
             mc.player.closeHandledScreen();
-            if (mc.currentScreen != null) {
+            if (mc.currentScreen instanceof MerchantScreen) {
                 mc.setScreen(null);
             }
             mc.player.getInventory().updateItems();

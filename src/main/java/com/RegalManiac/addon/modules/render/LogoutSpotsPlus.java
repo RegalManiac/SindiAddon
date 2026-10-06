@@ -1,11 +1,10 @@
 package com.RegalManiac.addon.modules.render;
 
+import com.RegalManiac.addon.managers.LobbyManager;
 import com.RegalManiac.addon.mixin.accessors.PlayerLikeEntityAccessor;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import meteordevelopment.meteorclient.events.entity.EntityAddedEvent;
-import meteordevelopment.meteorclient.events.game.ReceiveMessageEvent;
-import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;
 import meteordevelopment.meteorclient.events.render.Render3DEvent;
 import meteordevelopment.meteorclient.events.world.TickEvent;
@@ -13,8 +12,8 @@ import meteordevelopment.meteorclient.renderer.Renderer2D;
 import meteordevelopment.meteorclient.renderer.ShapeMode;
 import meteordevelopment.meteorclient.renderer.text.TextRenderer;
 import meteordevelopment.meteorclient.settings.*;
-import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.friends.Friends;
+import meteordevelopment.meteorclient.systems.modules.Categories;
 import meteordevelopment.meteorclient.systems.modules.Module;
 import meteordevelopment.meteorclient.utils.player.ChatUtils;
 import meteordevelopment.meteorclient.utils.player.PlayerUtils;
@@ -24,18 +23,17 @@ import meteordevelopment.meteorclient.utils.render.color.SettingColor;
 import meteordevelopment.orbit.EventHandler;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
-import net.minecraft.network.packet.c2s.play.ChatMessageC2SPacket;
-import net.minecraft.network.packet.c2s.play.CommandExecutionC2SPacket;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.text.Text;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 import org.joml.Vector3d;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 public class LogoutSpotsPlus extends Module {
     private static final Color GREEN = new Color(25, 225, 25);
@@ -51,11 +49,9 @@ public class LogoutSpotsPlus extends Module {
         Ghost
     }
 
-    // General
     private final Setting<Double> scale = sgGeneral.add(new DoubleSetting.Builder().name("scale").description("The scale.").defaultValue(1).min(0).build());
     private final Setting<Boolean> ignoreFriends = sgGeneral.add(new BoolSetting.Builder().name("ignore-friends").description("Ignoring friend's logouts").defaultValue(false).build());
 
-    // Render
     private final Setting<RenderMode> renderMode = sgRender.add(new EnumSetting.Builder<RenderMode>().name("render-mode").description("How to render the logout spot.").defaultValue(RenderMode.Box).build());
     private final Setting<ShapeMode> shapeMode = sgRender.add(new EnumSetting.Builder<ShapeMode>().name("shape-mode").description("How the shapes are rendered.").defaultValue(ShapeMode.Both).build());
     private final Setting<SettingColor> sideColor = sgRender.add(new ColorSetting.Builder().name("side-color").defaultValue(new SettingColor(255, 0, 255, 55)).build());
@@ -64,39 +60,16 @@ public class LogoutSpotsPlus extends Module {
     private final Setting<SettingColor> friendColor = sgRender.add(new ColorSetting.Builder().name("friend-color").description("The color of the friend's name.").defaultValue(new SettingColor(85, 255, 255)).build());
     private final Setting<SettingColor> nameBackgroundColor = sgRender.add(new ColorSetting.Builder().name("name-background-color").defaultValue(new SettingColor(0, 0, 0, 75)).build());
 
-    // Chat Settings
-    private final Setting<Boolean> logCoordinates = sgChat.add(new BoolSetting.Builder().name("log-coords").description("Send coordinates in chat when a player logs out.").defaultValue(true).build());
-    private final Setting<Boolean> notifyOnJoin = sgChat.add(new BoolSetting.Builder().name("notify-on-join").description("Remind offline target coords when you join the server.").defaultValue(true).build());
-    private final Setting<Boolean> selfInfoOnJoin = sgChat.add(new BoolSetting.Builder().name("self-info-on-join").description("Show your HP and totems popped from last session when joining.").defaultValue(true).build());
+    private final Setting<Boolean> logCoordinates = sgChat.add(new BoolSetting.Builder().name("log-coords").description("Send coordinates in chat when a player logs out in the world.").defaultValue(true).build());
+    private final Setting<Boolean> notifyOnJoin = sgChat.add(new BoolSetting.Builder().name("notify-on-join").description("Remind offline target coords in lobby when you join/reconnect.").defaultValue(true).build());
+    private final Setting<Boolean> selfInfoOnJoin = sgChat.add(new BoolSetting.Builder().name("self-info-on-join").description("Show your HP, totems and coords in lobby from last session.").defaultValue(true).build());
 
+    private static String currentIp = "";
+    private boolean hasSentLobbyInfo = false;
 
-    private static boolean shouldMessage = false;
-    private static String lastServerIp = "";
-    private static long lastMessageTime = 0;
-    private String lastWorldName = "";
-    private int lastAge = -1;
-    private static final java.util.Map<String, SessionData> sessionCache = new java.util.HashMap<>();
-
-    private static final List<Entry> players = new ArrayList<>();
-    private final List<PlayerListEntry> lastPlayerList = new ArrayList<>();
-    private final List<PlayerEntity> lastPlayers = new ArrayList<>();
-    private final Object2IntMap<UUID> totemPops = new Object2IntOpenHashMap<>();
-
-    private static final String[] REGISTER_KEYWORDS = {
-        "/register", "/reg", "register", "зарегистрируйтесь", "/рег", "создайте пароль"
-    };
-    private static final String[] LOGIN_KEYWORDS = {
-        "/login", "/l ", "login", "авторизуйтесь", "войдите", "/логин", "пароль"
-    };
-    private static final String[] AUTH_PROMPT_INDICATORS = {
-        "please", "type", "use", "welcome", "введите", "используйте"
-    };
-
-    private boolean inLobby = false;
-
-
-    public LogoutSpotsPlus() {
-        super(Categories.Render, "logout-spots-+", "Displays a box where another player has logged out at.");
+    private static class ServerSession {
+        final SessionData selfData = new SessionData();
+        final List<Entry> logoutPlayers = new ArrayList<>();
     }
 
     private static class SessionData {
@@ -107,101 +80,85 @@ public class LogoutSpotsPlus extends Module {
         boolean saved = false;
     }
 
-    @Override
-    public void onActivate() {
-        inLobby = false;
+    private static final Map<String, ServerSession> serverSessions = new HashMap<>();
+
+    private final List<PlayerListEntry> lastPlayerList = new ArrayList<>();
+    private final List<PlayerEntity> lastPlayers = new ArrayList<>();
+    private final Object2IntMap<UUID> totemPops = new Object2IntOpenHashMap<>();
+
+    public LogoutSpotsPlus() {
+        super(Categories.Render, "logout-spots-+", "Displays a box where another player has logged out at.");
+    }
+
+    private ServerSession getCurrentSession() {
+        if (currentIp.isEmpty()) return null;
+        return serverSessions.computeIfAbsent(currentIp, k -> new ServerSession());
+    }
+
+    private boolean isInMainWorld() {
+        if (mc.player == null || mc.world == null) return false;
+        if (LobbyManager.isInLobby()) return false;
+        return mc.player.age > 40;
     }
 
     @EventHandler
     private void onTick(TickEvent.Post event) {
-        if (mc.player == null || mc.world == null) {
-            inLobby = false;
+        if (mc.player == null || mc.world == null) return;
+
+        String activeIp = mc.getCurrentServerEntry() != null ? mc.getCurrentServerEntry().address.toLowerCase() : "singleplayer";
+
+        if (!activeIp.equals(currentIp)) {
+            currentIp = activeIp;
+            hasSentLobbyInfo = false;
+        }
+
+        ServerSession session = getCurrentSession();
+        if (session == null) return;
+
+        if (LobbyManager.isInLobby()) {
+            if (!hasSentLobbyInfo) {
+                sendLobbyMessages(session);
+                hasSentLobbyInfo = true;
+            }
             return;
         }
 
-        if (inLobby) return;
+        hasSentLobbyInfo = false;
 
-        String currentIp = mc.getCurrentServerEntry() != null ? mc.getCurrentServerEntry().address : "singleplayer";
-        lastServerIp = currentIp;
+        if (!isInMainWorld()) return;
+        session.selfData.hp = mc.player.getHealth() + mc.player.getAbsorptionAmount();
+        session.selfData.pops = totemPops.getInt(mc.player.getUuid());
+        session.selfData.totems = getTotemCount();
+        session.selfData.x = mc.player.getX();
+        session.selfData.y = mc.player.getY();
+        session.selfData.z = mc.player.getZ();
+        session.selfData.saved = true;
+        handleEnemyLogouts(session);
 
-        SessionData session = sessionCache.computeIfAbsent(currentIp, k -> new SessionData());
-
-        boolean isAtSpawn = Math.abs(mc.player.getX()) < 5.0 && Math.abs(mc.player.getZ()) < 5.0;
-        String currentWorld = mc.world.getRegistryKey().getValue().toString();
-
-        if (mc.player.age < lastAge || !currentWorld.equals(lastWorldName)) {
-            if (session.saved && isAtSpawn) {
-                shouldMessage = true;
-            }
-        }
-
-        if (!isAtSpawn && mc.player.age > 60) {
-            session.hp = mc.player.getHealth() + mc.player.getAbsorptionAmount();
-            session.pops = totemPops.getInt(mc.player.getUuid());
-            session.totems = getTotemCount();
-            session.x = mc.player.getX();
-            session.y = mc.player.getY();
-            session.z = mc.player.getZ();
-            session.saved = true;
-        }
-
-        lastAge = mc.player.age;
-        lastWorldName = currentWorld;
-
-        handleEnemyLogouts();
         if (mc.getNetworkHandler() != null) {
-            players.removeIf(entry -> mc.getNetworkHandler().getPlayerList().stream().anyMatch(p -> p.getProfile().id().equals(entry.uuid)));
+            session.logoutPlayers.removeIf(entry -> mc.getNetworkHandler().getPlayerList().stream()
+                .anyMatch(p -> p.getProfile().id().equals(entry.uuid)));
         }
     }
 
-    @EventHandler
-    private void onRender3D(Render3DEvent event) {
-        if (shouldMessage && mc.player != null && mc.player.age > 20) {
-            if (System.currentTimeMillis() - lastMessageTime > 5000) {
-                sendInstantMessage();
-                lastMessageTime = System.currentTimeMillis();
-            }
-            shouldMessage = false;
-        }
-
-        for (Entry p : players) {
-            if (mc.world != null && mc.world.getRegistryKey() == p.dimension) p.render3D(event);
-        }
-    }
-
-    @EventHandler
-    private void onRender2D(Render2DEvent event) {
-        for (Entry player : players) {
-            if (mc.world != null && mc.world.getRegistryKey() == player.dimension) player.render2D();
-        }
-    }
-
-    private String getHpColor(int health) {
-        if (health >= 20) return "§a";
-        if (health >= 10) return "§e";
-        return "§c";
-    }
-
-    private void sendInstantMessage() {
+    private void sendLobbyMessages(ServerSession session) {
         if (mc.inGameHud == null || mc.inGameHud.getChatHud() == null) return;
 
-        SessionData session = sessionCache.get(lastServerIp);
-
-        if (selfInfoOnJoin.get() && session != null && session.saved) {
-            String hpCol = getHpColor(Math.round(session.hp));
+        if (selfInfoOnJoin.get() && session.selfData.saved) {
+            String hpCol = getHpColor(Math.round(session.selfData.hp));
             ChatUtils.sendMsg(Text.literal(
-                "§bSelf: §f" + (int)session.x + " " + (int)session.y + " " + (int)session.z + " " +
-                    "§7| HP: " + hpCol + String.format("%.1f", session.hp) + " " +
-                    "§7| Pops: §e" + session.pops + " " +
-                    "§7| Totems: §e" + session.totems
+                "§b[Self] §f" + (int)session.selfData.x + " " + (int)session.selfData.y + " " + (int)session.selfData.z + " " +
+                    "§7| HP: " + hpCol + String.format("%.1f", session.selfData.hp) + " " +
+                    "§7| Pops: §e" + session.selfData.pops + " " +
+                    "§7| Totems: §e" + session.selfData.totems
             ));
         }
 
-        if (notifyOnJoin.get() && !players.isEmpty()) {
-            for (Entry e : players) {
+        if (notifyOnJoin.get() && !session.logoutPlayers.isEmpty()) {
+            for (Entry e : session.logoutPlayers) {
                 String hpCol = getHpColor(e.health);
                 ChatUtils.sendMsg(Text.literal(
-                    "§c" + e.name + " §7logged at §f" + (int)e.x + " " + (int)e.y + " " + (int)e.z + " " +
+                    "§c[Players] " + e.name + " §7logged at §f" + (int)e.x + " " + (int)e.y + " " + (int)e.z + " " +
                         "§7| HP: " + hpCol + e.health + " " +
                         "§7| Pops: §e" + e.totems
                 ));
@@ -209,7 +166,7 @@ public class LogoutSpotsPlus extends Module {
         }
     }
 
-    private void handleEnemyLogouts() {
+    private void handleEnemyLogouts(ServerSession session) {
         if (mc.getNetworkHandler() == null) return;
 
         if (mc.getNetworkHandler().getPlayerList().size() < lastPlayerList.size()) {
@@ -222,8 +179,8 @@ public class LogoutSpotsPlus extends Module {
 
                         int pops = totemPops.getOrDefault(player.getUuid(), 0);
                         Entry newEntry = new Entry(player, pops);
-                        players.removeIf(p -> p.uuid.equals(newEntry.uuid));
-                        players.add(newEntry);
+                        session.logoutPlayers.removeIf(p -> p.uuid.equals(newEntry.uuid));
+                        session.logoutPlayers.add(newEntry);
 
                         if (logCoordinates.get()) {
                             String hpCol = getHpColor(newEntry.health);
@@ -242,6 +199,48 @@ public class LogoutSpotsPlus extends Module {
         updateLastPlayers();
     }
 
+    @EventHandler
+    private void onRender3D(Render3DEvent event) {
+        if (!isInMainWorld()) return;
+
+        ServerSession session = getCurrentSession();
+        if (session == null) return;
+
+        for (Entry p : session.logoutPlayers) {
+            if (mc.world != null && mc.world.getRegistryKey() == p.dimension) p.render3D(event);
+        }
+    }
+
+    @EventHandler
+    private void onRender2D(Render2DEvent event) {
+        if (!isInMainWorld()) return;
+
+        ServerSession session = getCurrentSession();
+        if (session == null) return;
+
+        for (Entry player : session.logoutPlayers) {
+            if (mc.world != null && mc.world.getRegistryKey() == player.dimension) player.render2D();
+        }
+    }
+
+    @EventHandler
+    private void onEntityAdded(EntityAddedEvent event) {
+        if (!isInMainWorld()) return;
+
+        if (event.entity instanceof PlayerEntity) {
+            ServerSession session = getCurrentSession();
+            if (session != null) {
+                session.logoutPlayers.removeIf(p -> p.uuid.equals(event.entity.getUuid()));
+            }
+        }
+    }
+
+    private String getHpColor(int health) {
+        if (health >= 20) return "§a";
+        if (health >= 10) return "§e";
+        return "§c";
+    }
+
     private void updateLastPlayers() {
         lastPlayers.clear();
         if (mc.world != null) {
@@ -258,66 +257,11 @@ public class LogoutSpotsPlus extends Module {
         return count;
     }
 
-    @EventHandler
-    private void onEntityAdded(EntityAddedEvent event) {
-        if (event.entity instanceof PlayerEntity) players.removeIf(p -> p.uuid.equals(event.entity.getUuid()));
-    }
-
-    @EventHandler
-    private void onMessageReceive(ReceiveMessageEvent event) {
-        String msg = event.getMessage().getString().replaceAll("§[0-9a-fk-or]", "").toLowerCase().trim();
-
-        boolean foundLogin = false;
-        boolean foundRegister = false;
-
-        for (String key : REGISTER_KEYWORDS) {
-            if (msg.contains(key)) {
-                foundRegister = true;
-                break;
-            }
-        }
-
-        if (!foundRegister) {
-            for (String key : LOGIN_KEYWORDS) {
-                if (msg.contains(key)) {
-                    foundLogin = true;
-                    break;
-                }
-            }
-        }
-
-        boolean hasContext = false;
-        for (String context : AUTH_PROMPT_INDICATORS) {
-            if (msg.contains(context)) {
-                hasContext = true;
-                break;
-            }
-        }
-
-        boolean isCommand = msg.contains("/") || msg.contains("!");
-
-        if ((foundRegister || foundLogin) && (hasContext || isCommand)) {
-            inLobby = true;
-        }
-    }
-
-    @EventHandler
-    private void onPacketSend(PacketEvent.Send event) {
-        if (event.packet instanceof CommandExecutionC2SPacket packet) {
-            String cmd = packet.command().toLowerCase();
-            if (cmd.startsWith("login") || cmd.startsWith("l ") || cmd.startsWith("reg")) {
-                inLobby = false;
-            }
-        } else if (event.packet instanceof ChatMessageC2SPacket packet) {
-            String msg = packet.chatMessage().toLowerCase();
-            if (msg.startsWith("/login") || msg.startsWith("/l ") || msg.startsWith("/reg")) {
-                inLobby = false;
-            }
-        }
-    }
-
     @Override
-    public String getInfoString() { return Integer.toString(players.size()); }
+    public String getInfoString() {
+        ServerSession session = getCurrentSession();
+        return session != null ? Integer.toString(session.logoutPlayers.size()) : "0";
+    }
 
     private static final Vector3d pos = new Vector3d();
 
@@ -335,11 +279,11 @@ public class LogoutSpotsPlus extends Module {
         public Entry(PlayerEntity entity, int totems) {
             this.entity = entity;
 
-            this.halfWidth = entity.getWidth() / 2;
-            this.x = entity.getX() - halfWidth;
+            this.x = entity.getX();
             this.y = entity.getY();
-            this.z = entity.getZ() - halfWidth;
+            this.z = entity.getZ();
 
+            this.halfWidth = entity.getWidth() / 2;
             this.xWidth = entity.getBoundingBox().getLengthX();
             this.zWidth = entity.getBoundingBox().getLengthZ();
             this.height = entity.getBoundingBox().getLengthY();
@@ -357,23 +301,20 @@ public class LogoutSpotsPlus extends Module {
             this.headYaw = entity.getHeadYaw();
             this.bodyYaw = entity.getBodyYaw();
 
-            entity.setNoGravity(true);
-            entity.setVelocity(0, 0, 0);
+            for (EquipmentSlot slot : EquipmentSlot.values()) {
+                entity.equipStack(slot, ItemStack.EMPTY);
+            }
             entity.getDataTracker().set(PlayerLikeEntityAccessor.getPlayerModeCustomizationId(), (byte) 0);
         }
 
         public void render3D(Render3DEvent event) {
-            double renderX = x + halfWidth;
-            double renderY = y;
-            double renderZ = z + halfWidth;
-
-            entity.setPos(renderX, renderY, renderZ);
-            entity.lastX = renderX;
-            entity.lastY = renderY;
-            entity.lastZ = renderZ;
-            entity.lastRenderX = renderX;
-            entity.lastRenderY = renderY;
-            entity.lastRenderZ = renderZ;
+            entity.setPos(x, y, z);
+            entity.lastX = x;
+            entity.lastY = y;
+            entity.lastZ = z;
+            entity.lastRenderX = x;
+            entity.lastRenderY = y;
+            entity.lastRenderZ = z;
 
             entity.setYaw(this.yaw);
             entity.setPitch(this.pitch);
@@ -383,27 +324,29 @@ public class LogoutSpotsPlus extends Module {
             entity.lastYaw = this.yaw;
             entity.lastPitch = this.pitch;
             entity.lastHeadYaw = this.headYaw;
+            entity.lastBodyYaw = this.bodyYaw;
 
+            entity.setVelocity(Vec3d.ZERO);
+            entity.setNoGravity(true);
+            entity.setOnGround(true);
             entity.fallDistance = 0.0f;
             entity.distanceTraveled = 0.0f;
             entity.speed = 0.0f;
             entity.age = 0;
+            entity.hurtTime = 0;
+            entity.maxHurtTime = 0;
+            entity.deathTime = 0;
             entity.limbAnimator.setSpeed(0.0f);
             entity.handSwingProgress = 0.0f;
+            entity.handSwingTicks = 0;
 
             if (renderMode.get() == RenderMode.Box) {
-                event.renderer.box(x, y, z, x + xWidth, y + height, z + zWidth, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
+                event.renderer.box(x - halfWidth, y, z - halfWidth, x + halfWidth, y + height, z + halfWidth, sideColor.get(), lineColor.get(), shapeMode.get(), 0);
             } else if (renderMode.get() == RenderMode.Ghost) {
-                net.minecraft.item.ItemStack chest = entity.getEquippedStack(net.minecraft.entity.EquipmentSlot.CHEST);
-                entity.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, net.minecraft.item.ItemStack.EMPTY);
-
                 meteordevelopment.meteorclient.utils.render.WireframeEntityRenderer.render(
                     event, entity, scale.get(), sideColor.get(), lineColor.get(), shapeMode.get()
                 );
-
-                entity.equipStack(net.minecraft.entity.EquipmentSlot.CHEST, chest);
             }
-
         }
 
         public void render2D() {
@@ -411,7 +354,7 @@ public class LogoutSpotsPlus extends Module {
 
             TextRenderer text = TextRenderer.get();
             double scaleValue = LogoutSpotsPlus.this.scale.get();
-            pos.set(x + halfWidth, y + height + 0.5, z + halfWidth);
+            pos.set(x, y + height + 0.5, z);
 
             if (!NametagUtils.to2D(pos, scaleValue)) return;
             NametagUtils.begin(pos);

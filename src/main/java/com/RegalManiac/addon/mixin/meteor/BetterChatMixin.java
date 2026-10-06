@@ -1,17 +1,17 @@
 package com.RegalManiac.addon.mixin.meteor;
 
 import com.RegalManiac.addon.modules.misc.ChatControl;
+import com.mojang.authlib.GameProfile;
 import meteordevelopment.meteorclient.mixininterface.IChatHudLineVisible;
+import meteordevelopment.meteorclient.settings.BoolSetting;
+import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.misc.BetterChat;
-import meteordevelopment.meteorclient.settings.Setting;
-import meteordevelopment.meteorclient.settings.BoolSetting;
 import net.minecraft.client.gl.RenderPipelines;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.PlayerSkinDrawer;
 import net.minecraft.client.gui.hud.ChatHudLine;
 import net.minecraft.util.Identifier;
-import com.mojang.authlib.GameProfile;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -22,6 +22,8 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.regex.Pattern;
+
+import static com.RegalManiac.addon.utils.text.TextUtils.SHIFTED_TEXTS;
 
 @Mixin(value = BetterChat.class, remap = false)
 public abstract class BetterChatMixin {
@@ -41,7 +43,7 @@ public abstract class BetterChatMixin {
     private static final Identifier BARITONE_CHAT_ICON = Identifier.of("meteor-client", "textures/icons/chat/baritone.png");
 
     @Unique private static final Pattern PLAYER_NAME_REGEX_1 = Pattern.compile("^<([a-zA-Z0-9_]{3,16})>");
-    @Unique private static final Pattern PLAYER_NAME_REGEX_2 = Pattern.compile("^\\[([a-zA-Z0-9_]{3,16})\\]");
+    @Unique private static final Pattern PLAYER_NAME_REGEX_2 = Pattern.compile("^\\[([a-zA-Z0-9_]{3,16})]");
     @Unique private static final Pattern PLAYER_NAME_REGEX_3 = Pattern.compile("^([a-zA-Z0-9_]{3,16})\\s?[>:]");
 
     @Unique
@@ -97,6 +99,7 @@ public abstract class BetterChatMixin {
 
             context.getMatrices().pushMatrix();
             context.getMatrices().translate(10.0F, 0.0F);
+            SHIFTED_TEXTS.add(this.line.content());
             this.sindiPushed = true;
             this.currentContext = context;
             ci.cancel();
@@ -140,6 +143,7 @@ public abstract class BetterChatMixin {
 
                 context.getMatrices().pushMatrix();
                 context.getMatrices().translate(10.0F, 0.0F);
+                SHIFTED_TEXTS.add(this.line.content());
                 this.sindiPushed = true;
                 this.currentContext = context;
 

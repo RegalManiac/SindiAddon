@@ -1,17 +1,14 @@
-package com.RegalManiac.addon.utils;
+package com.RegalManiac.addon.utils.text;
 
 import meteordevelopment.meteorclient.systems.config.Config;
 import meteordevelopment.meteorclient.utils.render.color.Color;
 import net.minecraft.text.*;
-import net.minecraft.text.CharacterVisitor;
-import net.minecraft.text.OrderedText;
-import net.minecraft.text.Style;
-import net.minecraft.text.TextColor;
 
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 
 public class TextUtils {
+
+    public static final Set<OrderedText> SHIFTED_TEXTS = Collections.newSetFromMap(new WeakHashMap<>());
 
     public static MutableText coloredText(String text, Color color) {
         return Text.literal(text).setStyle(Style.EMPTY.withColor(TextColor.fromRgb(color.getPacked())));
@@ -30,26 +27,18 @@ public class TextUtils {
         return new RainbowText(original, hueOffsets, speedMult);
     }
 
-    private static class RainbowText implements OrderedText {
-        private final OrderedText original;
-        private final double[] hueOffsets;
-        private final double speedMult;
 
-        public RainbowText(OrderedText original, double[] hueOffsets, double speedMult) {
-            this.original = original;
-            this.hueOffsets = hueOffsets;
-            this.speedMult = speedMult;
-        }
+    private record RainbowText(OrderedText original, double[] hueOffsets, double speedMult) implements OrderedText {
 
         @Override
-        public boolean accept(CharacterVisitor visitor) {
-            double timeHue = (System.currentTimeMillis() * speedMult * 0.0276) % 1.0;
+            public boolean accept(CharacterVisitor visitor) {
+                double timeHue = (System.currentTimeMillis() * speedMult * 0.0276) % 1.0;
 
-            StatefulVisitor statefulVisitor = VISITOR_CACHE.get();
-            statefulVisitor.setup(visitor, hueOffsets, timeHue);
-            return original.accept(statefulVisitor);
+                StatefulVisitor statefulVisitor = VISITOR_CACHE.get();
+                statefulVisitor.setup(visitor, hueOffsets, timeHue);
+                return original.accept(statefulVisitor);
+            }
         }
-    }
 
     private static class StatefulVisitor implements CharacterVisitor {
         private CharacterVisitor target;

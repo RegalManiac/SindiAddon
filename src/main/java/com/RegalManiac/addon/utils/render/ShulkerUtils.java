@@ -1,8 +1,8 @@
-package com.RegalManiac.addon.utils;
+package com.RegalManiac.addon.utils.render;
 
+import meteordevelopment.meteorclient.settings.Setting;
 import meteordevelopment.meteorclient.systems.modules.Modules;
 import meteordevelopment.meteorclient.systems.modules.render.BetterTooltips;
-import meteordevelopment.meteorclient.settings.Setting;
 import net.minecraft.block.ShulkerBoxBlock;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.WeakHashMap;
 
-public class ShulkerRenderUtils {
+public class ShulkerUtils {
 
     private static final WeakHashMap<ItemStack, CachedData> cache = new WeakHashMap<>();
     private record CachedData(ItemStack mostCommonStack, boolean hasMultiple) {}
@@ -54,7 +54,7 @@ public class ShulkerRenderUtils {
             }
 
             ItemStack renderStack = mostCommon.copy();
-            renderStack.setCount(1); // Для рендера достаточно одного предмета
+            renderStack.setCount(1);
 
             data = new CachedData(renderStack, items.size() > 1);
             cache.put(stack, data);

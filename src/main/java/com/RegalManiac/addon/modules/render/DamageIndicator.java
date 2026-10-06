@@ -1,6 +1,6 @@
 package com.RegalManiac.addon.modules.render;
 
-import com.RegalManiac.addon.utils.FakePlayerUtils;
+import com.RegalManiac.addon.utils.player.FakePlayerUtils;
 import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
 import meteordevelopment.meteorclient.events.packets.PacketEvent;
 import meteordevelopment.meteorclient.events.render.Render2DEvent;

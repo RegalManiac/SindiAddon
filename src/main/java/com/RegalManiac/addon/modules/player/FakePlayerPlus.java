@@ -1,6 +1,7 @@
 package com.RegalManiac.addon.modules.player;
 
 import com.RegalManiac.addon.events.TotemPopEvent;
+import com.RegalManiac.addon.utils.player.FakePlayerUtils;
 import com.mojang.authlib.GameProfile;
 import meteordevelopment.meteorclient.MeteorClient;
 import meteordevelopment.meteorclient.events.entity.player.AttackEntityEvent;
@@ -39,8 +40,6 @@ import net.minecraft.world.World;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
-import com.RegalManiac.addon.utils.FakePlayerUtils;
 
 public class FakePlayerPlus extends Module {
     private final SettingGroup sgGeneral = settings.getDefaultGroup();
@@ -129,7 +128,7 @@ public class FakePlayerPlus extends Module {
     @EventHandler(priority = 200)
     public void onPacketReceive(Receive e) {
         if (e.packet instanceof ExplosionS2CPacket explosion && this.fakePlayer != null) {
-            float finalDamage = (float) DamageUtils.explosionDamage(
+            float finalDamage = DamageUtils.explosionDamage(
                 this.fakePlayer,
                 this.fakePlayer.getEntityPos(),
                 this.fakePlayer.getBoundingBox(),

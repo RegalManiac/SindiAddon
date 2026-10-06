@@ -118,5 +118,13 @@
   "saywarning": {
     "category": "player",
     "sounds": ["sindiaddon:saywarning"]
+  },
+  "scrolling": {
+    "category": "player",
+    "sounds": ["sindiaddon:scrolling"]
+  },
+  "click": {
+    "category": "player",
+    "sounds": ["sindiaddon:click"]
   }
 }
